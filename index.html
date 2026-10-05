@@ -605,7 +605,7 @@
     window.initLoad = async function() {
         go('s-load');
         try {
-            const resRespuestas = await fetch('sim-2.txt');
+            const resRespuestas = await fetch('simulacro_general_3.txt');
             if(!resRespuestas.ok) throw new Error();
             const textoRespuestas = await resRespuestas.text();
             RESPUESTAS_CORRECTAS = textoRespuestas.match(/[A-D]/gi).slice(0, 80).map(l => l.toUpperCase());
