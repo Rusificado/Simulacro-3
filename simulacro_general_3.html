@@ -1,0 +1,883 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <meta name="color-scheme" content="light">
+    <title>Simulacro General #3 UdeA | Parche500</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="shortcut icon" href="../../../../../img/udea.png" type="image/x-icon">
+    <style>
+        :root { 
+            --bg: #ffffff; 
+            --surface: #f4f5f7; 
+            --accent: #10b981; 
+            --accent-hover: #059669; 
+            --text: #09090b; 
+            --text-muted: #52525b; 
+            --border: rgba(0,0,0,0.1); 
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; width: 100%; position: relative; overflow-x: hidden; }
+        .watermark { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 50vmin; opacity: 0.05; z-index: 99999; pointer-events: none; }
+        @keyframes fadeUp { 0% { opacity: 0; transform: translateY(20px); } 100% { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOut { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(20px); } }
+        @keyframes fadeIn { 0% { opacity: 0; } 100% { opacity: 1; } }
+        @keyframes fadeOutBg { 0% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes popCard { 0% { transform: scale(1); } 50% { transform: scale(0.92); } 100% { transform: scale(1); } }
+        .screen { display: none; min-height: 100vh; width: 100%; padding: 20px 15px; position: relative; z-index: 1; }
+        .screen.active { display: block; animation: fadeUp 0.4s ease forwards; }
+        .btn-back { display: inline-block; background: transparent; color: var(--text); border: 2px solid var(--text); padding: 8px 16px; border-radius: 10px; font-weight: 800; text-transform: uppercase; cursor: pointer; text-decoration: none; font-size: 0.8rem; margin-bottom: 15px; transition: 0.3s; }
+        .btn-back:hover { background: var(--text); color: var(--bg); }
+        .panel { background: var(--bg); border: 1px solid var(--border); border-radius: 20px; padding: 25px 20px; width: 100%; max-width: 580px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); margin: 20px auto; position: relative; }
+        h1 { color: var(--text); font-weight: 900; font-size: 2.2rem; text-align: center; text-transform: uppercase; letter-spacing: -1px; text-shadow: -2px 2px 0 var(--accent); }
+        h2 { color: var(--text); font-weight: 700; margin-bottom: 15px; text-align: center; font-size: 1.5rem; }
+        p.sub { color: var(--text-muted); text-align: center; margin-bottom: 25px; font-weight: 500; font-size: 0.95rem; }
+        .btn { background: var(--text); color: var(--bg); padding: 16px 24px; border-radius: 12px; font-weight: 800; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 1px; border: none; cursor: pointer; transition: 0.3s; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(0,0,0,0.1); }
+        .btn.outline { background: transparent; color: var(--text); border: 2px solid var(--text); }
+        .btn.outline:hover { background: var(--text); color: var(--bg); }
+        .btn.accent { background: var(--accent); color: #fff; border: none; }
+        .btn.accent:hover { background: var(--accent-hover); }
+        .main-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; margin-top: 25px; }
+        .split-actions { display: flex; flex-direction: column; gap: 12px; width: 100%; }
+        .rules { background: var(--surface); padding: 20px; border-radius: 14px; margin-bottom: 20px; border: 1px solid var(--border); }
+        .rules li { margin-bottom: 10px; font-size: 0.9rem; line-height: 1.4; color: var(--text-muted); list-style: none; display: flex; gap: 8px; font-weight: 500; animation: fadeUp 0.5s ease backwards; }
+        .rules li:nth-child(1) { animation-delay: 0.1s; }
+        .rules li:nth-child(2) { animation-delay: 0.15s; }
+        .rules li:nth-child(3) { animation-delay: 0.2s; }
+        .rules li:nth-child(4) { animation-delay: 0.25s; }
+        .rules li:nth-child(5) { animation-delay: 0.3s; }
+        .rules li:nth-child(6) { animation-delay: 0.35s; }
+        .rules li::before { content: '>'; color: var(--text); font-weight: 900; }
+        .overlay { position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 10000; display: none; align-items: center; justify-content: center; flex-direction: column; text-align: center; padding: 20px; animation: fadeIn 0.3s ease; }
+        .overlay.closing { animation: fadeOutBg 0.3s ease forwards; }
+        .alert-box { background: var(--bg); border: 1px solid var(--border); padding: 30px 20px; border-radius: 16px; max-width: 380px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.1); animation: popCard 0.4s ease; }
+        .overlay.closing .alert-box { animation: fadeOut 0.3s ease forwards; }
+        .alert-box h2 { color: var(--text); text-shadow: -2px 2px 0 var(--accent); font-size: 1.6rem; }
+        .spinner { width: 50px; height: 50px; border: 4px solid var(--border); border-top: 4px solid var(--accent); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px auto; }
+        #test-screen { padding: 0; display: none; height: 100vh; overflow: hidden; }
+        #test-screen.active { display: flex; flex-direction: row; }
+        .viewer { flex: 1; background: var(--surface); height: 100vh; position: relative; overflow: hidden; z-index: 2; }
+        .pdf-gallery-container { width: 100%; height: 100%; padding: 20px; overflow: auto; -webkit-overflow-scrolling: touch; }
+        .pdf-gallery { display: flex; flex-direction: column; gap: 20px; width: 100%; max-width: 850px; margin: 0 auto; transition: width 0.2s ease, max-width 0.2s ease; transform-origin: top center; }
+        .pdf-gallery canvas { width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); background: #ffffff; display: block; animation: fadeUp 0.6s ease backwards; }
+        .zoom-bar { display: flex; position: absolute; top: 15px; right: 25px; background: var(--bg); border: 2px solid var(--text); border-radius: 30px; padding: 6px 12px; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.1); align-items: center; gap: 10px; animation: fadeUp 0.5s ease backwards; }
+        .zoom-bar button { background: var(--surface); border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; border-radius: 50%; font-weight: 900; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; }
+        .zoom-bar button:active { transform: scale(0.9); }
+        .zoom-bar span { font-weight: 800; font-size: 0.85rem; min-width: 45px; text-align: center; }
+        .sheet { width: 400px; background: var(--bg); height: 100vh; padding: 20px; overflow-y: auto; border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; z-index: 5; }
+        .header-sheet { background: var(--bg); padding: 15px; border-radius: 12px; border: 2px solid var(--text); text-align: center; position: sticky; top: 0; z-index: 10; box-shadow: -3px 3px 0 var(--accent); font-weight: 900; font-size: 1.1rem; text-transform: uppercase; }
+        .q-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; transition: background 0.3s; }
+        .q-num { width: 30px; font-weight: 800; color: var(--text); text-align: right; font-size: 1rem; }
+        .opts { display: flex; gap: 6px; flex: 1; justify-content: flex-start; }
+        .opt { width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; cursor: pointer; font-weight: 700; transition: 0.2s; color: var(--text); background: var(--bg); font-size: 0.9rem; }
+        .opt:hover { border-color: var(--text); transform: scale(1.05); }
+        .opt.sel { background: var(--accent); color: #fff; border-color: var(--accent); animation: popCard 0.3s ease; }
+        .fab { display: none; position: fixed; bottom: 25px; left: 20px; width: 56px; height: 56px; background: var(--accent); color: #fff; border-radius: 50%; border: 2px solid #000; box-shadow: -3px 3px 0 #000; z-index: 1000; cursor: pointer; align-items: center; justify-content: center; transition: 0.3s; }
+        .fab:active { transform: scale(0.9) translate(-2px, 2px); box-shadow: 0 0 0 #000; }
+        .hero { text-align: center; margin-bottom: 30px; }
+        .res-global-container { display: flex; align-items: baseline; justify-content: center; gap: 6px; animation: popCard 0.6s ease; }
+        #res-global { font-size: clamp(3rem, 10vw, 5.5rem); font-weight: 900; color: var(--text); line-height: 1; text-shadow: -4px 4px 0 var(--accent); }
+        .res-global-container span { font-size: 2rem; font-weight: 900; color: var(--text-muted); }
+        .res-percentile { margin-top: 15px; font-size: 1.1rem; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 1px; display: flex; flex-direction: column; align-items: center; }
+        .p-bar-bg { width: 100%; max-width: 320px; height: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; margin: 12px auto 8px auto; overflow: hidden; position: relative; }
+        .p-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 1.2s cubic-bezier(0.2, 0.8, 0.2, 1); border-radius: 20px; }
+        .p-text { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; margin-bottom: 15px; line-height: 1.4; padding: 0 10px; text-transform: none; letter-spacing: 0; }
+        .p-text strong { color: var(--text); font-weight: 900; font-size: 0.95rem; }
+        .res-interpretation { color: var(--text-muted); margin-top: 5px; font-weight: 600; font-size: 0.95rem; line-height: 1.4; padding: 0 10px; }
+        .grid { display: grid; grid-template-columns: 1fr; gap: 15px; width: 100%; max-width: 580px; margin: 0 auto 30px auto; }
+        .card { background: var(--bg); border: 2px solid var(--border); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; justify-content: space-between; min-height: 140px; cursor: pointer; transition: 0.3s; animation: fadeUp 0.6s ease backwards; }
+        .card:hover { border-color: var(--text); box-shadow: -4px 4px 0 var(--accent); transform: translateY(-3px); }
+        .card.anim-click { animation: popCard 0.3s ease; }
+        .card-head { display: flex; justify-content: space-between; align-items: center; flex-direction: row; gap: 10px; width: 100%; }
+        .card-head h4 { color: var(--text-muted); font-size: 0.85rem; text-transform: uppercase; font-weight: 800; line-height: 1.2; }
+        .card-head span { font-size: 1.8rem; font-weight: 900; color: var(--text); }
+        .bars { display: flex; align-items: flex-end; justify-content: space-between; height: 35px; gap: 6px; margin-top: 15px; }
+        .bar { flex: 1; background: var(--border); border-radius: 4px; transition: 0.5s; }
+        .bar.on { background: var(--accent); }
+        dialog { margin: auto; background: var(--bg); border: 2px solid var(--text); border-radius: 20px; padding: 30px; width: 90%; max-width: 500px; color: var(--text); box-shadow: -8px 8px 0 var(--accent); z-index: 10001; }
+        dialog::backdrop { background: rgba(255,255,255,0.85); backdrop-filter: blur(5px); transition: 0.3s; }
+        dialog[open] { animation: fadeUp 0.3s ease-out forwards; }
+        dialog.closing { animation: fadeOut 0.3s ease-in forwards; }
+        dialog.closing::backdrop { background: rgba(255,255,255,0); backdrop-filter: blur(0px); }
+        .user-profile { display: flex; align-items: center; justify-content: flex-start; gap: 15px; margin-bottom: 20px; padding: 12px; background: var(--surface); border-radius: 14px; border: 1px solid var(--border); animation: fadeUp 0.4s ease backwards; }
+        .user-profile img { width: 45px; height: 45px; border-radius: 50%; border: 2px solid var(--accent); object-fit: cover; flex-shrink: 0; }
+        .user-profile div { text-align: left; overflow: hidden; }
+        .user-profile strong { display: block; font-size: 1rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-profile span { font-size: 0.8rem; color: var(--text-muted); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .table-wrapper { overflow-x: auto; margin-top: 25px; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        table { width: 100%; border-collapse: collapse; text-align: left; white-space: nowrap; }
+        th, td { padding: 16px; border-bottom: 1px solid var(--border); }
+        th { background: var(--surface); font-weight: 800; color: var(--text-muted); text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 2; }
+        td { font-size: 0.95rem; font-weight: 600; color: var(--text); transition: background 0.3s; }
+        tbody tr:hover td { background: var(--surface); cursor: pointer; }
+        .badge { display: inline-flex; align-items: center; justify-content: center; padding: 6px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 800; }
+        .badge.up { background: rgba(22, 163, 74, 0.15); color: var(--green); }
+        .badge.down { background: rgba(234, 88, 12, 0.15); color: var(--orange); }
+        .badge.neu { background: var(--surface); color: var(--text-muted); }
+        .filter-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 15px; scrollbar-width: none; }
+        .filter-container::-webkit-scrollbar { display: none; }
+        .filter-chip { background: var(--surface); border: 1px solid var(--border); color: var(--text-muted); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: 0.3s; }
+        .filter-chip:hover { border-color: var(--text); color: var(--text); }
+        .filter-chip.active { background: var(--text); color: var(--bg); border-color: var(--text); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .stats-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; animation: fadeUp 0.5s ease backwards; animation-delay: 0.15s; }
+        .stat-card { background: var(--bg); border: 1px solid var(--border); padding: 15px; border-radius: 14px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .stat-card span { font-size: 0.8rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 5px; }
+        .stat-card strong { font-size: 1.5rem; color: var(--text); font-weight: 900; }
+        .insight-box { background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); padding: 15px; border-radius: 12px; margin-top: 15px; }
+        .insight-box strong { color: var(--blue); font-size: 0.95rem; display: block; margin-bottom: 5px; }
+        .insight-box p { color: var(--text); font-size: 0.85rem; line-height: 1.4; font-weight: 500; }
+        @media (min-width: 600px) {
+            .panel { padding: 40px; }
+            .split-actions { flex-direction: row; }
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            h1 { font-size: 2.5rem; }
+        }
+        @media (max-width: 900px) {
+            #test-screen.active { flex-direction: column; }
+            .fab { display: flex; }
+            .sheet { position: fixed; top: 0; left: 0; width: 100%; max-width: 100%; transform: translateX(-100%); z-index: 900; padding-bottom: 90px; border-left: none; border-right: 1px solid var(--border); box-shadow: 10px 0 30px rgba(0,0,0,0.1); visibility: hidden; transition: transform 0.3s ease, visibility 0s linear 0.3s; }
+            .sheet.open { transform: translateX(0); visibility: visible; transition: transform 0.3s ease, visibility 0s linear 0s; }
+        }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+    <img src="../../../../../img/udea-logo.png" class="watermark" alt="Parche500">
+    <div class="overlay" id="alert">
+        <div class="alert-box">
+            <h2 id="alert-title">Aviso</h2>
+            <p id="alert-msg" style="margin-top: 12px; margin-bottom: 20px; color: var(--text-muted); line-height: 1.4; font-weight: 500; font-size: 0.95rem;"></p>
+            <button class="btn" onclick="closeAlert()">Entendido</button>
+        </div>
+    </div>
+    <section id="s-auth" class="screen active">
+        <div class="panel">
+            <a href="https://parche500.com/material-gratis" class="btn-back">Volver</a>
+            <h1>Parche500</h1>
+            <p class="sub">Simulacro General #3 PreUdeA</p>
+            <button class="btn accent" onclick="loginGoogle()">
+                <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#fff" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#fff" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#fff" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#fff" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+                Iniciar Sesión con Google
+            </button>
+        </div>
+    </section>
+    <section id="s-rules" class="screen">
+        <div class="panel">
+            <div id="user-info-display"></div>
+            <h2 style="animation: fadeUp 0.4s ease backwards; animation-delay: 0.05s;">Reglas Simulacro PreUdeA</h2>
+            <ul class="rules">
+                <li>Sesión de evaluación con el modelo estandarizado de la Universidad de Antioquia.</li>
+                <li>80 preguntas en total: 40 de Competencia Lectora y 40 de Razonamiento Lógico.</li>
+                <li>Calificación por estandarización basada en medias históricas de rendimiento.</li>
+                <li>Razonamiento Lógico: Promedio histórico de 10 preguntas. Superar esta media otorga una bonificación exponencial.</li>
+                <li>Competencia Lectora: Promedio histórico de 30 preguntas. Rendimientos inferiores son penalizados en el puntaje.</li>
+                <li>Puedes navegar por las preguntas libremente sin límite de tiempo.</li>
+            </ul>
+            <div class="main-actions">
+                <button class="btn outline" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.1s;" onclick="openHistory()">Consultar Historial de Resultados</button>
+                <div class="split-actions" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;">
+                    <button class="btn outline" style="flex: 1;" onclick="window.location.href='/curso-udea/udea'">Salir</button>
+                    <button class="btn accent" style="flex: 1;" onclick="initLoad()">Comenzar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section id="s-history" class="screen">
+        <div class="panel" style="max-width: 800px;">
+            <button class="btn-back" onclick="go('s-rules')">Volver</button>
+            <h2 style="animation: fadeUp 0.4s ease backwards;">Análisis de Evolución</h2>
+            <p class="sub" style="margin-bottom: 10px; animation: fadeUp 0.4s ease backwards; animation-delay: 0.1s;">Compara tu rendimiento histórico y proyecta tu ingreso.</p>
+            <div id="hist-content-area"></div>
+        </div>
+    </section>
+    <section id="s-load" class="screen">
+        <div class="panel" style="text-align: center; box-shadow: none; border: none; background: transparent;">
+            <div class="spinner"></div>
+            <h2 id="l-txt" style="font-size: 1.8rem;">Cargando...</h2>
+            <p id="l-sub" style="color: var(--text-muted); font-weight: 500; line-height: 1.5; margin: 0 auto;">Preparando el simulacro y estandarizando las métricas de evaluación a máxima calidad.</p>
+        </div>
+    </section>
+    <section id="test-screen" class="screen">
+        <div class="viewer" id="viewer-container">
+            <div class="zoom-bar">
+                <button onclick="changeZoom(-0.25)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <span id="zoom-level">100%</span>
+                <button onclick="changeZoom(0.25)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                </button>
+                <button onclick="changeZoom(0, true)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+                </button>
+            </div>
+            <div class="pdf-gallery-container" id="gallery-wrapper">
+                <div class="pdf-gallery" id="m-gal"></div>
+            </div>
+        </div>
+        <div class="sheet" id="sheet">
+            <div class="header-sheet">Hoja de Respuestas</div>
+            <div id="q-con"></div>
+            <button class="btn accent" onclick="endTest()" style="margin-top: 20px;">Finalizar Simulacro</button>
+        </div>
+        <button class="fab" onclick="togSheet()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+        </button>
+    </section>
+    <section id="s-res" class="screen">
+        <div class="panel" id="res-panel" style="max-width: 700px;">
+            <div class="hero">
+                <p style="color: var(--text-muted); font-weight: 800; letter-spacing: 2px; margin-bottom: 10px; animation: fadeUp 0.4s ease backwards;">PUNTAJE ESTANDARIZADO</p>
+                <div class="res-global-container">
+                    <div id="res-global">0</div>
+                    <span>pts</span>
+                </div>
+                <div id="res-percentile" class="res-percentile" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.1s;"></div>
+                <div id="res-interpretation" class="res-interpretation" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;"></div>
+            </div>
+            <div class="grid" id="res-grid"></div>
+            <button class="btn outline" style="max-width: 280px; margin: 20px auto 10px auto; animation: fadeUp 0.6s ease backwards; animation-delay: 0.4s;" onclick="window.location.href='/curso-udea/udea'">Volver al Inicio</button>
+        </div>
+    </section>
+    <dialog id="mod">
+        <h2 id="m-title" style="margin-bottom: 20px; color: var(--text); font-weight: 900; text-transform: uppercase;"></h2>
+        <div id="m-con"></div>
+        <button class="btn accent" style="margin-top: 25px;" onclick="closeModal('mod')">Cerrar</button>
+    </dialog>
+    <dialog id="hist-detail-mod" style="max-width: 600px;">
+        <h2 id="hist-detail-title" style="margin-bottom: 5px; color: var(--text); font-weight: 900; text-transform: uppercase; text-align: center;"></h2>
+        <p id="hist-detail-date" style="text-align:center; color:var(--text-muted); font-size:0.9rem; font-weight:600; margin-bottom:20px;"></p>
+        <div style="width:100%; height:280px; margin-bottom:20px; position:relative; background:var(--surface); border-radius:14px; padding:10px;">
+            <canvas id="radarChart"></canvas>
+        </div>
+        <div id="hist-detail-feedback"></div>
+        <button class="btn accent" style="margin-top: 25px; width:100%;" onclick="closeModal('hist-detail-mod')">Cerrar Análisis</button>
+    </dialog>
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyDzZjGlQKmcBJaNZmx59vOcFWq9sRl8bf4",
+      authDomain: "parche500-977df.firebaseapp.com",
+      projectId: "parche500-977df",
+      storageBucket: "parche500-977df.firebasestorage.app",
+      messagingSenderId: "795235753580",
+      appId: "1:795235753580:web:b6465f5838b60d30668249",
+      measurementId: "G-ZW0H9FNBEF"
+    };
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+    const provider = new GoogleAuthProvider();
+    const SKILLS = {
+        "Competencia Lectora": [
+            "Identificación del significado léxico según el contexto oracional.",
+            "Reconocimiento de la macroestructura y tipología textual.",
+            "Identificación de voces enunciativas y sus intenciones comunicativas.",
+            "Relación intertextual entre premisas explícitas y tesis principales."
+        ],
+        "Razonamiento Lógico": [
+            "Comprensión y traducción de enunciados verbales a lenguaje algebraico.",
+            "Reconocimiento de secuencias numéricas y patrones de repetición.",
+            "Resolución de problemas geométricos de áreas, perímetros y escalas.",
+            "Aplicación del conteo y principios básicos de probabilidad en eventos combinados."
+        ]
+    };
+    let S = { user: null, ans: {}, sub: false };
+    let RESPUESTAS_CORRECTAS = [];
+    let currentZoom = 1.0;
+    let initialTouchDistance = 0;
+    let touchStartZoom = 1.0;
+    let accumulatedTime = 0;
+    let sessionStartTime = 0;
+    let userHistoryData = [];
+    let trendChartInstance = null;
+    let radarChartInstance = null;
+    document.addEventListener('keydown', e => { if(e.key === 'F12' || (e.ctrlKey && ['u','i','s','j'].includes(e.key.toLowerCase()))) e.preventDefault(); });
+    window.showA = function(t, m) { 
+        document.getElementById('alert-title').innerText = t; 
+        document.getElementById('alert-msg').innerText = m; 
+        const al = document.getElementById('alert');
+        al.classList.remove('closing');
+        al.style.display = 'flex'; 
+    }
+    window.closeAlert = function() { 
+        const al = document.getElementById('alert');
+        al.classList.add('closing');
+        setTimeout(() => {
+            al.style.display = 'none';
+            al.classList.remove('closing');
+        }, 300);
+    }
+    window.closeModal = function(id) {
+        const mod = document.getElementById(id);
+        mod.classList.add('closing');
+        setTimeout(() => {
+            mod.close();
+            mod.classList.remove('closing');
+        }, 300);
+    }
+    window.go = function(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0, 0); }
+    onAuthStateChanged(auth, async user => {
+        if (user) {
+            try {
+                const docRef = doc(db, "authorizedUsers", user.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().active === true && docSnap.data().courses && docSnap.data().courses.udea === true) {
+                    S.user = user;
+                    showRules();
+                } else {
+                    await signOut(auth);
+                    S.user = null;
+                }
+            } catch (error) {
+                await signOut(auth);
+                S.user = null;
+            }
+        }
+    });
+    window.loginGoogle = async function() {
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            const docRef = doc(db, "authorizedUsers", user.uid);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists() && docSnap.data().active === true && docSnap.data().courses && docSnap.data().courses.udea === true) {
+                S.user = user;
+                showRules();
+            } else {
+                await signOut(auth);
+                window.showA("Acceso Denegado", "Tu cuenta no está activa o no tienes acceso a este módulo.");
+            }
+        } catch (error) {
+            window.showA("Error de Autenticación", "No se pudo iniciar sesión con Google. Inténtalo nuevamente.");
+        }
+    };
+    function showRules() {
+        if (!S.user) return;
+        const display = document.getElementById('user-info-display');
+        display.innerHTML = `
+            <div class="user-profile">
+                <img src="${S.user.photoURL || '../../../../../img/udea.png'}" alt="Foto" referrerpolicy="no-referrer">
+                <div>
+                    <strong>${S.user.displayName || 'Estudiante'}</strong>
+                    <span>${S.user.email}</span>
+                </div>
+            </div>
+        `;
+        go('s-rules');
+    }
+    window.setChartFilter = function(f, el) {
+        if(!trendChartInstance || !userHistoryData.length) return;
+        document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+        el.classList.add('active');
+        let data = [];
+        let label = '';
+        let color = '';
+        let bgColor = '';
+        if (f === 'Global') {
+            data = userHistoryData.map(h => h.gl); 
+            label = 'Puntaje Global'; 
+            color = '#dc2626';
+            bgColor = 'rgba(220, 38, 38, 0.1)';
+        } else {
+            let keyMap = {'Competencia Lectora': 'cl', 'Razonamiento Lógico': 'rl'};
+            let k = keyMap[f];
+            data = userHistoryData.map(h => h[k]); 
+            label = f; 
+            color = '#2563eb';
+            bgColor = 'rgba(37, 99, 235, 0.1)';
+        }
+        trendChartInstance.data.datasets[0].data = data;
+        trendChartInstance.data.datasets[0].label = label;
+        trendChartInstance.data.datasets[0].borderColor = color;
+        trendChartInstance.data.datasets[0].backgroundColor = bgColor;
+        trendChartInstance.update();
+    }
+    window.openHistory = async function() {
+        if(!S.user) return;
+        let hist = [];
+        try {
+            const intentosRef = collection(db, "authorizedUsers", S.user.uid, "simulacros_udea", "simulacro_3", "intentos");
+            const q = query(intentosRef, orderBy("date", "asc"));
+            const querySnapshot = await getDocs(q);
+            querySnapshot.forEach((docSnap) => {
+                hist.push(docSnap.data());
+            });
+        } catch(e) {}
+        userHistoryData = hist;
+        let container = document.getElementById('hist-content-area');
+        if(hist.length < 2) {
+            container.innerHTML = `<div style="text-align:center; padding: 40px 20px; animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;"><h3 style="color:var(--text); margin-bottom:10px;">Datos Insuficientes</h3><p style="color:var(--text-muted); font-size:0.95rem; line-height:1.5;">Debes tener al menos 2 intentos completados para desbloquear tu analítica avanzada, gráficas interactivas y recomendaciones personalizadas. Actualmente tienes ${hist.length} intento(s).</p></div>`;
+        } else {
+            let firstGl = hist[0].gl;
+            let lastGl = hist[hist.length-1].gl;
+            let avgDelta = (lastGl - firstGl) / (hist.length - 1);
+            let projected = Math.min(100, lastGl + (avgDelta > 0 ? avgDelta : 0)).toFixed(1);
+            let html = `
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <span>Puntaje Actual</span>
+                        <strong>${lastGl}</strong>
+                    </div>
+                    <div class="stat-card">
+                        <span>Proyección Estimada</span>
+                        <strong style="color:var(--blue);">${projected}</strong>
+                    </div>
+                </div>
+                <div class="filter-container" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;">
+                    <div class="filter-chip active" onclick="setChartFilter('Global', this)">Global</div>
+                    <div class="filter-chip" onclick="setChartFilter('Competencia Lectora', this)">Competencia Lectora</div>
+                    <div class="filter-chip" onclick="setChartFilter('Razonamiento Lógico', this)">Razonamiento Lógico</div>
+                </div>
+                <div style="width:100%; height:250px; margin-bottom:20px; padding:15px; background:var(--bg); border:1px solid var(--border); border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); animation: fadeUp 0.5s ease backwards; animation-delay: 0.25s;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            `;
+            const formatTime = (ms) => {
+                let s = Math.floor(ms / 1000);
+                let m = Math.floor(s / 60);
+                return `${m}m ${s % 60}s`;
+            };
+            let trs = hist.map((h, i) => {
+                let d = new Date(h.date).toLocaleDateString();
+                let badge = '<span class="badge neu">-</span>';
+                if(i > 0) {
+                    let prevGl = hist[i-1].gl;
+                    let delta = parseFloat((h.gl - prevGl).toFixed(4));
+                    if(delta > 0) {
+                        badge = `<span class="badge up">+${delta} pts</span>`;
+                    } else if(delta < 0) {
+                        badge = `<span class="badge down">${delta} pts</span>`;
+                    }
+                }
+                let tq = h.ansTotal > 0 ? formatTime(h.time / h.ansTotal) : '0s';
+                let maxSc = Math.max(h.cl||0, h.rl||0);
+                let best = "N/A";
+                if(maxSc === (h.cl||0)) best = "C. Lectora";
+                else if(maxSc === (h.rl||0)) best = "R. Lógico";
+                let delay = 0.3 + (i * 0.05);
+                return `<tr onclick="showAttemptDetail(${i})" style="animation: fadeUp 0.4s ease backwards; animation-delay: ${delay}s;"><td>#${i+1}</td><td>${d}</td><td style="font-weight:900;">${h.gl}</td><td>${badge}</td><td>${tq}</td><td>${best}</td></tr>`;
+            }).join('');
+            html += `<div class="table-wrapper" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.3s;"><table><thead><tr><th>Intento</th><th>Fecha</th><th>Puntaje</th><th>Evolución</th><th>Tiempo/Preg</th><th>Fuerte</th></tr></thead><tbody>${trs}</tbody></table></div><p style="text-align:center; margin-top:12px; font-size:0.85rem; color:var(--text-muted); font-weight:600; animation: fadeUp 0.5s ease backwards; animation-delay: 0.35s;">Toca cualquier intento en la tabla para ver el diagnóstico detallado.</p>`;
+            container.innerHTML = html;
+            setTimeout(() => {
+                let ctx = document.getElementById('trendChart').getContext('2d');
+                if(trendChartInstance) trendChartInstance.destroy();
+                trendChartInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: hist.map((_, i) => `#${i+1}`),
+                        datasets: [{
+                            label: 'Puntaje Global',
+                            data: hist.map(h => h.gl),
+                            borderColor: '#dc2626',
+                            backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                            borderWidth: 3,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#09090b',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { 
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: '#09090b',
+                                titleFont: { family: 'Inter', size: 13 },
+                                bodyFont: { family: 'Inter', size: 14, weight: 'bold' },
+                                padding: 10,
+                                displayColors: false
+                            }
+                        },
+                        scales: { 
+                            y: { 
+                                beginAtZero: false,
+                                grid: { color: 'rgba(0,0,0,0.05)' },
+                                ticks: { font: { family: 'Inter', weight: '600' } }
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'Inter', weight: '600' } }
+                            }
+                        },
+                        interaction: { intersect: false, mode: 'index' }
+                    }
+                });
+            }, 50);
+        }
+        go('s-history');
+    }
+    function calculateLevel(score, subject) {
+        let ratio = score / 100;
+        if (ratio >= 0.8) return 5;
+        if (ratio >= 0.6) return 4;
+        if (ratio >= 0.4) return 3;
+        if (ratio >= 0.2) return 2;
+        return 1;
+    }
+    window.showAttemptDetail = function(index) {
+        let h = userHistoryData[index];
+        document.getElementById('hist-detail-title').innerText = `Diagnóstico Intento #${index + 1}`;
+        document.getElementById('hist-detail-date').innerText = new Date(h.date).toLocaleString();
+        let maxScore = Math.max(h.cl||0, h.rl||0);
+        let minScore = Math.min(h.cl||0, h.rl||0);
+        let best = ""; let worst = "";
+        let worstKey = "";
+        let comps = [
+            {n: "Competencia Lectora", v: h.cl||0, k: "cl"},
+            {n: "Razonamiento Lógico", v: h.rl||0, k: "rl"}
+        ];
+        comps.forEach(c => {
+            if(c.v === maxScore) best = c.n;
+            if(c.v === minScore) { worst = c.n; worstKey = c.k; }
+        });
+        setTimeout(() => {
+            let ctx = document.getElementById('radarChart').getContext('2d');
+            if(radarChartInstance) radarChartInstance.destroy();
+            radarChartInstance = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['C. Lectora', 'R. Lógico'],
+                    datasets: [{
+                        label: 'Puntaje',
+                        data: [h.cl||0, h.rl||0],
+                        backgroundColor: 'rgba(220, 38, 38, 0.2)',
+                        borderColor: '#dc2626',
+                        pointBackgroundColor: '#09090b',
+                        borderWidth: 2,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: { 
+                        r: { 
+                            beginAtZero: true, 
+                            max: 100, 
+                            ticks: { display: false, maxTicksLimit: 5 },
+                            pointLabels: { font: { family: 'Inter', size: 11, weight: 'bold' }, color: '#52525b' }
+                        } 
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }, 50);
+        let currentLevel = calculateLevel(minScore, worstKey);
+        let targetSkill = "";
+        if(currentLevel < 5) {
+            let idx = Math.min(currentLevel - 1, SKILLS[worst].length - 1);
+            targetSkill = SKILLS[worst][idx]; 
+        } else {
+            targetSkill = "¡Excelente nivel! Mantén la práctica constante para asegurar este rendimiento y reducir tiempos de respuesta.";
+        }
+        document.getElementById('hist-detail-feedback').innerHTML = `
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <div class="rules" style="margin-bottom:0; padding:15px; border-left: 4px solid var(--green);">
+                    <strong style="color:var(--text); font-size:1.05rem;">Tu Mayor Fortaleza: ${best} (${maxScore})</strong><br>
+                    <span style="color:var(--text-muted); font-size:0.9rem;">Tienes una base sólida aquí. Usa este componente para ganar tiempo a favor en el examen real.</span>
+                </div>
+                <div class="rules" style="margin-bottom:0; border-left: 4px solid var(--accent); padding:15px;">
+                    <strong style="color:var(--accent); font-size:1.05rem;">Objetivo Prioritario: ${worst} (${minScore})</strong><br>
+                    <span style="color:var(--text-muted); font-size:0.9rem; display:block; margin-top:5px; margin-bottom: 8px;">Para subir al siguiente nivel en esta área, enfócate en dominar:</span>
+                    <ul style="margin-top:0; padding-left:0;">
+                        ${targetSkill.split('<br>').map(t => `<li style="margin-bottom:6px; font-size:0.85rem;">${t.trim()}</li>`).join('')}
+                    </ul>
+                </div>
+                <div class="insight-box">
+                    <strong>💡 Estrategia Parche500</strong>
+                    <p>El examen de la UdeA penaliza fuertemente los errores básicos. Al enfocar tu estudio en los temas sugeridos arriba para <strong>${worst}</strong>, tu curva de crecimiento global será mucho más rápida que si sigues repasando lo que ya sabes.</p>
+                </div>
+            </div>
+        `;
+        document.getElementById('hist-detail-mod').showModal();
+    }
+    window.initLoad = async function() {
+        go('s-load');
+        try {
+            const resRespuestas = await fetch('sim-2.txt');
+            if(!resRespuestas.ok) throw new Error();
+            const textoRespuestas = await resRespuestas.text();
+            RESPUESTAS_CORRECTAS = textoRespuestas.match(/[A-D]/gi).slice(0, 80).map(l => l.toUpperCase());
+        } catch(e) {
+            RESPUESTAS_CORRECTAS = Array.from({length: 80}, (_, i) => ['A','B','C','D'][i % 4]);
+        }
+        try {
+            const pdfjsLib = window.pdfjsLib || window['pdfjs-dist/build/pdf'];
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+            const docPdf = await pdfjsLib.getDocument('sim-2.pdf').promise;
+            const gal = document.getElementById('m-gal');
+            gal.innerHTML = '';
+            const renderScale = 2.0;
+            const firstPage = await docPdf.getPage(1);
+            const vpFirst = firstPage.getViewport({scale: renderScale});
+            const observer = new IntersectionObserver((entries, obs) => {
+                entries.forEach(async entry => {
+                    if(entry.isIntersecting) {
+                        try {
+                            const canvas = entry.target;
+                            if(canvas.dataset.loaded === 'true') return;
+                            canvas.dataset.loaded = 'true';
+                            obs.unobserve(canvas);
+                            const pageNo = parseInt(canvas.dataset.pageNo);
+                            const page = await docPdf.getPage(pageNo);
+                            const vp = page.getViewport({scale: renderScale});
+                            canvas.width = vp.width;
+                            canvas.height = vp.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = 'high';
+                            await page.render({canvasContext: ctx, viewport: vp}).promise;
+                        } catch(err) {}
+                    }
+                });
+            }, { rootMargin: '800px' });
+            for(let i = 1; i <= docPdf.numPages; i++) {
+                const cvs = document.createElement('canvas');
+                cvs.width = vpFirst.width;
+                cvs.height = vpFirst.height;
+                cvs.dataset.pageNo = i;
+                cvs.dataset.loaded = 'false';
+                gal.appendChild(cvs);
+                observer.observe(cvs);
+            }
+            setupTouchZoom();
+        } catch(e) {} 
+        await start();
+    }
+    window.start = async function() {
+        let savedAns = {};
+        accumulatedTime = 0;
+        if(S.user) {
+            try {
+                const progRef = doc(db, "authorizedUsers", S.user.uid, "simulacros_udea", "simulacro_3_progress");
+                const progSnap = await getDoc(progRef);
+                if(progSnap.exists()) {
+                    const data = progSnap.data();
+                    if(data.ans) savedAns = data.ans;
+                    if(data.accumulatedTime) accumulatedTime = data.accumulatedTime;
+                }
+            } catch(e) {}
+        }
+        S.ans = savedAns;
+        sessionStartTime = Date.now();
+        const c = document.getElementById('q-con');
+        c.innerHTML = '';
+        for (let id = 1; id <= 80; id++) {
+            let areaLabel = '';
+            if (id === 1) areaLabel = '<div style="font-weight:900; color:var(--accent); margin: 10px 0 5px 0; font-size:0.85rem;">COMPETENCIA LECTORA</div>';
+            if (id === 41) areaLabel = '<div style="font-weight:900; color:var(--accent); margin: 20px 0 5px 0; font-size:0.85rem;">RAZONAMIENTO LÓGICO</div>';
+            let optsHTML = ['A','B','C','D'].map(v => {
+                let isSel = (S.ans[id] === v) ? 'sel' : '';
+                return `<div class="opt ${isSel}" onclick="mark(${id}, '${v}', this)">${v}</div>`;
+            }).join('');
+            c.innerHTML += `${areaLabel}<div class="q-row"><div class="q-num">${id}.</div><div class="opts">${optsHTML}</div></div>`;
+        }
+        go('test-screen');
+    }
+    window.saveProgress = async function() {
+        if(!S.user || S.sub) return;
+        accumulatedTime += (Date.now() - sessionStartTime);
+        sessionStartTime = Date.now();
+        try {
+            const progRef = doc(db, "authorizedUsers", S.user.uid, "simulacros_udea", "simulacro_3_progress");
+            await setDoc(progRef, { ans: S.ans, accumulatedTime: accumulatedTime }, { merge: true });
+        } catch(e) {}
+    }
+    window.mark = function(id, v, el) {
+        if(S.sub) return;
+        el.parentElement.querySelectorAll('.opt').forEach(s => s.classList.remove('sel'));
+        el.classList.add('sel');
+        S.ans[id] = v;
+        saveProgress();
+    }
+    window.togSheet = function() { document.getElementById('sheet').classList.toggle('open'); }
+    window.changeZoom = function(delta, reset = false) {
+        if (reset) {
+            currentZoom = 1.0;
+        } else {
+            currentZoom = Math.min(3.0, Math.max(0.5, currentZoom + delta));
+        }
+        applyZoom(currentZoom);
+    };
+    function applyZoom(zoomValue) {
+        currentZoom = Math.min(3.0, Math.max(0.5, zoomValue));
+        const gallery = document.getElementById('m-gal');
+        if (gallery) {
+            gallery.style.maxWidth = `${850 * currentZoom}px`;
+            gallery.style.width = `${currentZoom * 100}%`;
+        }
+        document.getElementById('zoom-level').innerText = `${Math.round(currentZoom * 100)}%`;
+    }
+    function setupTouchZoom() {
+        const viewer = document.getElementById('viewer-container');
+        viewer.addEventListener('touchstart', e => {
+            if (e.touches.length === 2) {
+                initialTouchDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                touchStartZoom = currentZoom;
+            }
+        }, { passive: true });
+        viewer.addEventListener('touchmove', e => {
+            if (e.touches.length === 2 && initialTouchDistance > 0) {
+                const currentDistance = Math.hypot(
+                    e.touches[0].pageX - e.touches[1].pageX,
+                    e.touches[0].pageY - e.touches[1].pageY
+                );
+                const scaleFactor = currentDistance / initialTouchDistance;
+                applyZoom(touchStartZoom * scaleFactor);
+            }
+        }, { passive: true });
+        viewer.addEventListener('touchend', e => {
+            if (e.touches.length < 2) {
+                initialTouchDistance = 0;
+            }
+        }, { passive: true });
+    }
+    function getPercentileInfo(score) {
+        if (score >= 85) return { p: 99, n: "Nivel Sobresaliente", d: "Rendimiento excepcional que asegura altas probabilidades de admision en carreras competitivas." };
+        if (score >= 75) return { p: 90, n: "Nivel Superior", d: "Superas ampliamente la media del proceso de admision." };
+        if (score >= 65) return { p: 75, n: "Nivel Competitivo", d: "Puntaje solido, competitivo para una gran variedad de programas academicos." };
+        if (score >= 50) return { p: 50, n: "Nivel Promedio", d: "Estas en el estandar de la media historica de la prueba." };
+        if (score >= 35) return { p: 25, n: "Nivel Basico", d: "Rendimiento por debajo del promedio. Se ven aplicadas las penalizaciones del modelo." };
+        return { p: 10, n: "Nivel Insuficiente", d: "Es necesario reforzar las competencias y estrategias para superar la media exigida." };
+    }
+    window.endTest = async function() {
+        if(S.sub) return;
+        S.sub = true;
+        accumulatedTime += (Date.now() - sessionStartTime);
+        let timeMs = accumulatedTime;
+        
+        let answeredCL = 0;
+        let correctCL = 0;
+        let answeredRL = 0;
+        let correctRL = 0;
+        for (let i = 1; i <= 40; i++) {
+            if (S.ans[i]) {
+                answeredCL++;
+                if (S.ans[i] === RESPUESTAS_CORRECTAS[i - 1]) correctCL++;
+            }
+        }
+        for (let i = 41; i <= 80; i++) {
+            if (S.ans[i]) {
+                answeredRL++;
+                if (S.ans[i] === RESPUESTAS_CORRECTAS[i - 1]) correctRL++;
+            }
+        }
+        let scoreCL = 0;
+        if (answeredCL > 0) {
+            if (correctCL >= 30) {
+                scoreCL = Math.round(50 + 50 * Math.pow((correctCL - 30) / 10, 1.2));
+            } else {
+                scoreCL = Math.round(50 - 50 * Math.pow((30 - correctCL) / 30, 1.5));
+            }
+            scoreCL = Math.min(100, Math.max(0, scoreCL));
+        }
+        let scoreRL = 0;
+        if (answeredRL > 0) {
+            if (correctRL >= 10) {
+                scoreRL = Math.round(50 + 50 * Math.pow((correctRL - 10) / 30, 0.85));
+            } else {
+                scoreRL = Math.round(50 - 50 * Math.pow((10 - correctRL) / 10, 1.5));
+            }
+            scoreRL = Math.min(100, Math.max(0, scoreRL));
+        }
+        let globalScore = (answeredCL === 0 && answeredRL === 0) ? 0 : Math.round((scoreRL + scoreCL) / 2);
+        let totalAns = answeredCL + answeredRL;
+        if(S.user) {
+            let attempt = {
+                date: new Date().toISOString(),
+                gl: globalScore,
+                cl: scoreCL,
+                rl: scoreRL,
+                time: timeMs,
+                ansTotal: totalAns
+            };
+            try {
+                const simDocRef = doc(db, "authorizedUsers", S.user.uid, "simulacros_udea", "simulacro_3");
+                await setDoc(simDocRef, { init: true }, { merge: true });
+                const intentosRef = collection(simDocRef, "intentos");
+                await addDoc(intentosRef, attempt);
+                const progRef = doc(db, "authorizedUsers", S.user.uid, "simulacros_udea", "simulacro_3_progress");
+                await deleteDoc(progRef);
+            } catch(e) {}
+        }
+        let compData = {
+            "Competencia Lectora": { score: scoreCL, correct: correctCL, total: 40 },
+            "Razonamiento Lógico": { score: scoreRL, correct: correctRL, total: 40 }
+        };
+        res(globalScore, compData);
+    }
+    function res(gl, sc) {
+        go('s-res');
+        document.getElementById('res-global').innerText = gl;
+        let perc = getPercentileInfo(gl);
+        document.getElementById('res-percentile').innerHTML = `
+            <span style="color: var(--accent);">${perc.n}</span>
+            <div class="p-bar-bg">
+                <div class="p-bar-fill" id="p-bar-fill"></div>
+            </div>
+            <div class="p-text">Superaste al <strong>${perc.p}%</strong> de los aspirantes del periodo 2026-2.</div>
+        `;
+        document.getElementById('res-interpretation').innerText = perc.d;
+        setTimeout(() => {
+            document.getElementById('p-bar-fill').style.width = perc.p + '%';
+        }, 100);
+        const g = document.getElementById('res-grid');
+        g.innerHTML = '';
+        Object.entries(sc).forEach(([a, data], index) => {
+            let l = 0;
+            if (data.score > 0) {
+                let ratio = data.score / 100;
+                if (ratio >= 0.8) l = 5;
+                else if (ratio >= 0.6) l = 4;
+                else if (ratio >= 0.4) l = 3;
+                else if (ratio >= 0.2) l = 2;
+                else l = 1;
+            }
+            let b = ''; 
+            for(let i = 1; i <= 5; i++) {
+                b += `<div class="bar ${i <= l ? 'on' : ''}" style="height: ${i * 20}%"></div>`;
+            }
+            let animDelay = 0.2 + (index * 0.1);
+            g.innerHTML += `<div class="card" style="animation-delay: ${animDelay}s;" onclick="animCard(this, '${a}', ${l})"><div class="card-head"><h4>${a}</h4><span>${data.score}</span></div><div class="bars">${b}</div></div>`;
+        });
+    }
+    window.animCard = function(el, a, l) {
+        el.classList.add('anim-click');
+        setTimeout(() => {
+            el.classList.remove('anim-click');
+            openS(a, l);
+        }, 300);
+    }
+    function openS(a, l) {
+        document.getElementById('m-title').innerText = a;
+        const skList = SKILLS[a] || [];
+        const sk = skList.slice(0, l);
+        document.getElementById('m-con').innerHTML = sk.length 
+            ? sk.map((levelText, idx) => `
+                <div style="margin-bottom: 15px; animation: fadeUp 0.4s ease backwards; animation-delay: ${idx * 0.1}s;">
+                    <strong style="color:var(--text); font-size:1rem;">Nivel ${idx+1}</strong>
+                    <div style="margin-top: 5px; padding-left: 15px; border-left: 2px solid var(--accent); color:var(--text-muted); font-size: 0.9rem;">
+                        ${levelText.split('<br>').map(t => `<div style="margin-bottom:4px;">${t.trim()}</div>`).join('')}
+                    </div>
+                </div>
+            `).join('') 
+            : '<p style="color:var(--text-muted);">Sin habilidades desbloqueadas en este puntaje.</p>';
+        document.getElementById('mod').showModal();
+    }
+</script>
+</body>
+</html>
