@@ -18,6 +18,9 @@
             --text: #09090b; 
             --text-muted: #52525b; 
             --border: rgba(0,0,0,0.1); 
+            --blue: #2563eb;
+            --green: #16a34a;
+            --orange: #ea580c;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); min-height: 100vh; width: 100%; position: relative; overflow-x: hidden; }
@@ -165,6 +168,35 @@
             </button>
         </div>
     </section>
+    
+    <section id="s-setup" class="screen">
+        <div class="panel" style="text-align: center; box-shadow: none; border: none; background: transparent;">
+            <div class="spinner"></div>
+            <h2>Configurando cuenta...</h2>
+            <p style="color: var(--text-muted); font-weight: 500;">Generando perfil seguro en nuestros servidores.</p>
+        </div>
+    </section>
+
+    <section id="s-pending" class="screen">
+        <div class="panel">
+            <h2>Registro Pendiente</h2>
+            <p class="sub">Hemos recibido tu solicitud de acceso.</p>
+            <div class="rules" style="text-align: center;">
+                <strong style="color:var(--text); font-size:1.05rem;">Tu cuenta aún no ha sido aprobada.</strong><br><br>
+                <span style="color:var(--text-muted); font-size:0.95rem;">Un administrador verificará tus datos pronto. No es necesario crear otra cuenta.</span>
+            </div>
+            <button class="btn outline" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </section>
+
+    <section id="s-disabled" class="screen">
+        <div class="panel">
+            <h2 style="color: var(--orange);">Acceso Revocado</h2>
+            <p class="sub">Tu cuenta se encuentra deshabilitada.</p>
+            <button class="btn outline" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </section>
+
     <section id="s-rules" class="screen">
         <div class="panel">
             <div id="user-info-display"></div>
@@ -180,12 +212,13 @@
             <div class="main-actions">
                 <button class="btn outline" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.1s;" onclick="openHistory()">Consultar Historial de Resultados</button>
                 <div class="split-actions" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;">
-                    <button class="btn outline" style="flex: 1;" onclick="window.location.href='/Simulacro-3/index.html'">Salir</button>
+                    <button class="btn outline" style="flex: 1;" onclick="logout()">Salir</button>
                     <button class="btn accent" style="flex: 1;" onclick="initLoad()">Comenzar</button>
                 </div>
             </div>
         </div>
     </section>
+
     <section id="s-history" class="screen">
         <div class="panel" style="max-width: 800px;">
             <button class="btn-back" onclick="go('s-rules')">Volver</button>
@@ -240,7 +273,7 @@
                 <div id="res-interpretation" class="res-interpretation" style="animation: fadeUp 0.5s ease backwards; animation-delay: 0.2s;"></div>
             </div>
             <div class="grid" id="res-grid"></div>
-            <button class="btn outline" style="max-width: 280px; margin: 20px auto 10px auto; animation: fadeUp 0.6s ease backwards; animation-delay: 0.4s;" onclick="window.location.href='/Simulacro-3/index.html'">Volver al Inicio</button>
+            <button class="btn outline" style="max-width: 280px; margin: 20px auto 10px auto; animation: fadeUp 0.6s ease backwards; animation-delay: 0.4s;" onclick="window.location.href='/curso-udea/udea'">Volver al Inicio</button>
         </div>
     </section>
     <dialog id="mod">
@@ -260,7 +293,8 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
     import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, deleteDoc } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, query, orderBy, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+    
     const firebaseConfig = {
       apiKey: "AIzaSyDzZjGlQKmcBJaNZmx59vOcFWq9sRl8bf4",
       authDomain: "parche500-977df.firebaseapp.com",
@@ -270,10 +304,13 @@
       appId: "1:795235753580:web:b6465f5838b60d30668249",
       measurementId: "G-ZW0H9FNBEF"
     };
+    
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
     const provider = new GoogleAuthProvider();
+    let unsubUserDoc = null;
+
     const SKILLS = {
         "Competencia Lectora": [
             "Identificación del significado léxico según el contexto oracional.",
@@ -288,6 +325,7 @@
             "Aplicación del conteo y principios básicos de probabilidad en eventos combinados."
         ]
     };
+    
     let S = { user: null, ans: {}, sub: false };
     let RESPUESTAS_CORRECTAS = [];
     let currentZoom = 1.0;
@@ -298,7 +336,9 @@
     let userHistoryData = [];
     let trendChartInstance = null;
     let radarChartInstance = null;
+
     document.addEventListener('keydown', e => { if(e.key === 'F12' || (e.ctrlKey && ['u','i','s','j'].includes(e.key.toLowerCase()))) e.preventDefault(); });
+    
     window.showA = function(t, m) { 
         document.getElementById('alert-title').innerText = t; 
         document.getElementById('alert-msg').innerText = m; 
@@ -306,6 +346,7 @@
         al.classList.remove('closing');
         al.style.display = 'flex'; 
     }
+    
     window.closeAlert = function() { 
         const al = document.getElementById('alert');
         al.classList.add('closing');
@@ -314,6 +355,7 @@
             al.classList.remove('closing');
         }, 300);
     }
+    
     window.closeModal = function(id) {
         const mod = document.getElementById(id);
         mod.classList.add('closing');
@@ -322,42 +364,61 @@
             mod.classList.remove('closing');
         }, 300);
     }
+    
     window.go = function(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); window.scrollTo(0, 0); }
-    onAuthStateChanged(auth, async user => {
+    
+    onAuthStateChanged(auth, user => {
         if (user) {
-            try {
-                const docRef = doc(db, "authorizedUsers", user.uid);
-                const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().active === true && docSnap.data().courses && docSnap.data().courses.udea === true) {
-                    S.user = user;
+            S.user = user;
+            go('s-setup');
+            
+            if (unsubUserDoc) unsubUserDoc();
+            
+            const docRef = doc(db, "authorizedUsers", user.uid);
+            unsubUserDoc = onSnapshot(docRef, (docSnap) => {
+                if (!docSnap.exists()) {
+                    go('s-setup');
+                    return;
+                }
+                
+                const data = docSnap.data();
+                
+                if (data.status === 'disabled') {
+                    go('s-disabled');
+                } else if (data.status === 'pending') {
+                    go('s-pending');
+                } else if (data.status === 'approved' && data.active === true && data.courses && data.courses.udea === true) {
                     showRules();
                 } else {
-                    await signOut(auth);
-                    S.user = null;
+                    go('s-pending'); 
                 }
-            } catch (error) {
-                await signOut(auth);
-                S.user = null;
-            }
+            }, (error) => {
+                go('s-auth');
+                window.showA("Error", "No se pudo verificar tu acceso.");
+            });
+        } else {
+            if (unsubUserDoc) { unsubUserDoc(); unsubUserDoc = null; }
+            S.user = null;
+            go('s-auth');
         }
     });
+
     window.loginGoogle = async function() {
         try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            const docRef = doc(db, "authorizedUsers", user.uid);
-            const docSnap = await getDoc(docRef);
-            if (docSnap.exists() && docSnap.data().active === true && docSnap.data().courses && docSnap.data().courses.udea === true) {
-                S.user = user;
-                showRules();
-            } else {
-                await signOut(auth);
-                window.showA("Acceso Denegado", "Tu cuenta no está activa o no tienes acceso a este módulo.");
-            }
+            await signInWithPopup(auth, provider);
         } catch (error) {
-            window.showA("Error de Autenticación", "No se pudo iniciar sesión con Google. Inténtalo nuevamente.");
+            if (error.code !== 'auth/popup-closed-by-user') {
+                window.showA("Error de Autenticación", "No se pudo iniciar sesión. Inténtalo nuevamente.");
+            }
         }
     };
+
+    window.logout = async function() {
+        if (unsubUserDoc) unsubUserDoc();
+        await signOut(auth);
+        go('s-auth');
+    }
+
     function showRules() {
         if (!S.user) return;
         const display = document.getElementById('user-info-display');
@@ -372,6 +433,7 @@
         `;
         go('s-rules');
     }
+
     window.setChartFilter = function(f, el) {
         if(!trendChartInstance || !userHistoryData.length) return;
         document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
@@ -399,6 +461,7 @@
         trendChartInstance.data.datasets[0].backgroundColor = bgColor;
         trendChartInstance.update();
     }
+
     window.openHistory = async function() {
         if(!S.user) return;
         let hist = [];
@@ -517,6 +580,7 @@
         }
         go('s-history');
     }
+
     function calculateLevel(score, subject) {
         let ratio = score / 100;
         if (ratio >= 0.8) return 5;
@@ -525,6 +589,7 @@
         if (ratio >= 0.2) return 2;
         return 1;
     }
+
     window.showAttemptDetail = function(index) {
         let h = userHistoryData[index];
         document.getElementById('hist-detail-title').innerText = `Diagnóstico Intento #${index + 1}`;
@@ -602,6 +667,7 @@
         `;
         document.getElementById('hist-detail-mod').showModal();
     }
+
     window.initLoad = async function() {
         go('s-load');
         try {
@@ -655,6 +721,7 @@
         } catch(e) {} 
         await start();
     }
+
     window.start = async function() {
         let savedAns = {};
         accumulatedTime = 0;
@@ -685,6 +752,7 @@
         }
         go('test-screen');
     }
+
     window.saveProgress = async function() {
         if(!S.user || S.sub) return;
         accumulatedTime += (Date.now() - sessionStartTime);
@@ -694,6 +762,7 @@
             await setDoc(progRef, { ans: S.ans, accumulatedTime: accumulatedTime }, { merge: true });
         } catch(e) {}
     }
+
     window.mark = function(id, v, el) {
         if(S.sub) return;
         el.parentElement.querySelectorAll('.opt').forEach(s => s.classList.remove('sel'));
@@ -701,7 +770,9 @@
         S.ans[id] = v;
         saveProgress();
     }
+
     window.togSheet = function() { document.getElementById('sheet').classList.toggle('open'); }
+    
     window.changeZoom = function(delta, reset = false) {
         if (reset) {
             currentZoom = 1.0;
@@ -710,6 +781,7 @@
         }
         applyZoom(currentZoom);
     };
+
     function applyZoom(zoomValue) {
         currentZoom = Math.min(3.0, Math.max(0.5, zoomValue));
         const gallery = document.getElementById('m-gal');
@@ -719,6 +791,7 @@
         }
         document.getElementById('zoom-level').innerText = `${Math.round(currentZoom * 100)}%`;
     }
+
     function setupTouchZoom() {
         const viewer = document.getElementById('viewer-container');
         viewer.addEventListener('touchstart', e => {
@@ -746,6 +819,7 @@
             }
         }, { passive: true });
     }
+
     function getPercentileInfo(score) {
         if (score >= 85) return { p: 99, n: "Nivel Sobresaliente", d: "Rendimiento excepcional que asegura altas probabilidades de admision en carreras competitivas." };
         if (score >= 75) return { p: 90, n: "Nivel Superior", d: "Superas ampliamente la media del proceso de admision." };
@@ -754,6 +828,7 @@
         if (score >= 35) return { p: 25, n: "Nivel Basico", d: "Rendimiento por debajo del promedio. Se ven aplicadas las penalizaciones del modelo." };
         return { p: 10, n: "Nivel Insuficiente", d: "Es necesario reforzar las competencias y estrategias para superar la media exigida." };
     }
+
     window.endTest = async function() {
         if(S.sub) return;
         S.sub = true;
@@ -820,6 +895,7 @@
         };
         res(globalScore, compData);
     }
+
     function res(gl, sc) {
         go('s-res');
         document.getElementById('res-global').innerText = gl;
@@ -855,6 +931,7 @@
             g.innerHTML += `<div class="card" style="animation-delay: ${animDelay}s;" onclick="animCard(this, '${a}', ${l})"><div class="card-head"><h4>${a}</h4><span>${data.score}</span></div><div class="bars">${b}</div></div>`;
         });
     }
+
     window.animCard = function(el, a, l) {
         el.classList.add('anim-click');
         setTimeout(() => {
@@ -862,6 +939,7 @@
             openS(a, l);
         }, 300);
     }
+
     function openS(a, l) {
         document.getElementById('m-title').innerText = a;
         const skList = SKILLS[a] || [];
